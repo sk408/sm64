@@ -1,44 +1,66 @@
-name: Build
+name: Build Pico-ASHA UF2
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master, main ]
   pull_request:
-    branches: [ main ]
+    branches: [ master, main ]
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
       with:
         submodules: recursive
         
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential libstdc++-arm-none-eabi-newlib
+        sudo apt install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential libstdc++-arm-none-eabi-newlib python3 pkg-config
         
-    - name: Clone Pico SDK
+    - name: Clone and setup Pico SDK
       run: |
         git clone https://github.com/raspberrypi/pico-sdk.git
         cd pico-sdk
         git submodule update --init
-        cd ..
+        
+        # Export PICO_SDK_PATH environment variable for the build process
         echo "PICO_SDK_PATH=$GITHUB_WORKSPACE/pico-sdk" >> $GITHUB_ENV
         
     - name: Create build directory
-      run: mkdir build
+      run: mkdir -p build
       
-    - name: Configure
-      run: cd build && cmake ..
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DPICO_SDK_PATH=$PICO_SDK_PATH ..
       
-    - name: Build
-      run: cd build && make -j
+    - name: Build project
+      run: |
+        cd build
+        make -j4
+        
+    - name: List build artifacts
+      run: find build -name "*.uf2" -o -name "*.bin" -o -name "*.elf"
       
-    - name: Upload UF2
+    - name: Upload UF2 file
       uses: actions/upload-artifact@v3
       with:
-        name: pico-asha-uf2
-        path: build/pico_asha.uf2 
+        name: pico-asha-firmware
+        path: |
+          build/*.uf2
+          build/src/*.uf2
+        if-no-files-found: error
+        
+    - name: Upload ELF file (for debugging)
+      uses: actions/upload-artifact@v3
+      with:
+        name: pico-asha-debug
+        path: |
+          build/*.elf
+          build/src/*.elf
+        if-no-files-found: warn 
