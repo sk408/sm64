@@ -25,6 +25,10 @@
 #define MAX_NR_WHITELIST_ENTRIES 8
 #define MAX_NR_LE_DEVICE_DB_ENTRIES 16
 
+// HCI and buffer size configurations
+#define HCI_ACL_PAYLOAD_SIZE 1024
+#define HCI_ACL_BUFFER_SIZE 1024
+
 // Memory configuration
 #define MAX_ATT_DB_SIZE 512
 #define MAX_NR_GATT_ATTRIBUTES 50
