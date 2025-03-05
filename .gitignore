@@ -1,0 +1,54 @@
+# Build directories
+build/
+_build/
+cmake-build-*/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+*.uf2
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Binary files
+*.bin
+*.map
+
+# Dependency files
+*.d
+
+# Other
+.DS_Store
+Thumbs.db 

@@ -1,0 +1,44 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential libstdc++-arm-none-eabi-newlib
+        
+    - name: Clone Pico SDK
+      run: |
+        git clone https://github.com/raspberrypi/pico-sdk.git
+        cd pico-sdk
+        git submodule update --init
+        cd ..
+        echo "PICO_SDK_PATH=$GITHUB_WORKSPACE/pico-sdk" >> $GITHUB_ENV
+        
+    - name: Create build directory
+      run: mkdir build
+      
+    - name: Configure
+      run: cd build && cmake ..
+      
+    - name: Build
+      run: cd build && make -j
+      
+    - name: Upload UF2
+      uses: actions/upload-artifact@v3
+      with:
+        name: pico-asha-uf2
+        path: build/pico_asha.uf2 
