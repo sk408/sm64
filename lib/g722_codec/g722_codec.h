@@ -1,6 +1,9 @@
 /**
  * @file g722_codec.h
  * @brief G.722 audio codec implementation for Pico-ASHA
+ * 
+ * This implementation of the G.722 codec is optimized for the Raspberry Pi Pico
+ * and follows the ITU-T G.722 standard for 7 kHz audio coding.
  */
 
 #ifndef G722_CODEC_H
@@ -14,7 +17,9 @@ extern "C" {
 #endif
 
 /**
- * @brief G.722 state structure
+ * @brief G.722 state structures for encoding and decoding
+ * 
+ * These opaque structures hold the state for G.722 encoding and decoding operations.
  */
 typedef struct g722_encode_state_s g722_encode_state_t;
 typedef struct g722_decode_state_s g722_decode_state_t;
