@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <lib/g722_codec/g722_codec.h>
+#include "g722_codec/g722_codec.h"
 
 /**
  * @brief Audio sample format
