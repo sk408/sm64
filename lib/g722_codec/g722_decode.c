@@ -219,8 +219,8 @@ int g722_decode(g722_decode_state_t *s, int16_t pcm_data[], const uint8_t g722_d
         rlow = saturate(s->yl >> 15) + dlowt;
         
         /* Block 5L, PARREC */
-        s->pkg[1][0] = s->pkg[1][1];
-        s->pkg[1][1] = rlow;
+        s->pk[1][0] = s->pk[1][1];
+        s->pk[1][1] = rlow;
         
         /* Block 5L, UPZERO */
         wd1 = dlowt >> 31;
@@ -280,8 +280,8 @@ int g722_decode(g722_decode_state_t *s, int16_t pcm_data[], const uint8_t g722_d
         rhigh = saturate(s->yl >> 15) + dhigh;
         
         /* Block 6H, PARREC */
-        s->pkg[0][0] = s->pkg[0][1];
-        s->pkg[0][1] = rhigh;
+        s->pk[0][0] = s->pk[0][1];
+        s->pk[0][1] = rhigh;
         
         /* Block 6H, UPZERO */
         wd1 = dhigh >> 31;

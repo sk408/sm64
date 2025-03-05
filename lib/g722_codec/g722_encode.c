@@ -82,7 +82,7 @@ static int16_t seg_lookup(const int16_t val) {
     return 8;
 }
 
-static int16_t predictor_pole(int16_t val, int16_t *a) {
+static int16_t predictor_pole(int16_t val, int *a) {
     return saturate((a[0] * val) >> 15);
 }
 
@@ -99,7 +99,7 @@ static int16_t predictor_zero(int16_t *b, int16_t *dq) {
     return saturate(sum);
 }
 
-static int16_t quantize(int16_t d, int16_t y, int16_t *table, int quantizer) {
+static int16_t quantize(int16_t d, int16_t y, const int16_t *table, int quantizer) {
     int16_t dqm;
     int16_t dql;
     int16_t dex;
