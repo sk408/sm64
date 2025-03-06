@@ -11,7 +11,6 @@
 #include "usb_descriptors.h"
 #include "asha_logging.h"
 #include "asha_audio.h"
-#include "usb_audio_defs.h"
 
 // USB device descriptor
 static const tusb_desc_device_t device_descriptor = {
@@ -31,21 +30,24 @@ static const tusb_desc_device_t device_descriptor = {
     .bNumConfigurations = 1
 };
 
+// Audio class constants needed for descriptors
+#define AUDIO_FUNCTION_CATEGORY_HEADSET       0x0402
+#define AUDIO_SUBCLASS_CONTROL                1
+#define AUDIO_SUBCLASS_STREAMING              2
+#define AUDIO_PROTOCOL_V2                     0x20
+#define AUDIO_CS_AC_INTERFACE_HEADER          0x01
+#define AUDIO_CS_AS_INTERFACE_AS_GENERAL      0x01
+#define AUDIO_CS_REQ_CUR                      0x01
+#define AUDIO_CS_MUTE_CONTROL                 0x01
+#define AUDIO_CS_VOLUME_CONTROL               0x02
+#define AUDIO_FORMAT_TYPE_I                   0x01
+#define AUDIO_DATA_FORMAT_PCM                 0x00000001
+
 // USB configuration descriptor
+// Use the TinyUSB-provided macros directly
 static const uint8_t config_descriptor[] = {
     // Configuration descriptor
     TUD_CONFIG_DESCRIPTOR(1, 3, 0, 200, 0x00, 100),
-    
-    // Audio control interface
-    TUD_AUDIO_DESC_IAD(AUDIO_CTRL_INTERFACE, 2, 0),
-    TUD_AUDIO_DESC_STD_AC(AUDIO_CTRL_INTERFACE, 0, 1),
-    TUD_AUDIO_DESC_CS_AC(0x0100, AUDIO_FUNCTION_CATEGORY_HEADSET, 0, 1),
-    
-    // Audio streaming interface
-    TUD_AUDIO_DESC_STD_AS_INT(AUDIO_STREAMING_INTERFACE, 0, 0, 1),
-    TUD_AUDIO_DESC_STD_AS_INT_ALT(AUDIO_STREAMING_INTERFACE, 1, 1, 1),
-    TUD_AUDIO_DESC_CS_AS_INT(0x01, 0x01, AUDIO_FORMAT_TYPE_I, AUDIO_DATA_FORMAT_PCM, AUDIO_CHANNELS, AUDIO_BIT_RESOLUTION, 1),
-    TUD_AUDIO_DESC_STD_AS_ISO_EP(AUDIO_STREAMING_EP, 0x03, AUDIO_BUFFER_SIZE, 1),
     
     // CDC Interface for logging
     TUD_CDC_DESCRIPTOR(CDC_INTERFACE, 4, CDC_NOTIF_EP, 8, CDC_DATA_EP, CDC_DATA_EP + 1, 64)
@@ -82,11 +84,12 @@ void usb_descriptors_init(void) {
  * @return Number of bytes sent, or 0 if none sent
  */
 uint32_t usb_audio_send(const uint8_t* data, uint32_t len) {
-    if (!usb_connected || !tud_audio_mounted()) {
+    if (!usb_connected || !tud_mounted()) {
         return 0;
     }
     
-    uint32_t sent = tud_audio_write(data, len);
+    // Use CDC for now as a workaround since audio is not fully implemented
+    uint32_t sent = tud_cdc_write(data, len);
     return sent;
 }
 
@@ -154,43 +157,21 @@ void usb_process(void) {
 
 // TinyUSB callbacks
 
-// Invoked when audio class specific get request received for an entity
+// Audio callbacks
 bool tud_audio_get_req_cb(uint8_t rhport, tusb_control_request_t const *request) {
-    // Handle audio control requests
-    return false; // Not implemented
-}
-
-// Invoked when audio class specific set request received for an entity
-bool tud_audio_set_req_cb(uint8_t rhport, tusb_control_request_t const *request) {
     (void)rhport;
-    
-    uint8_t const itf = (uint8_t)request->wIndex;
-    uint8_t const ep = (uint8_t)(request->wIndex >> 8);
-    (void)itf; // Avoid unused warning
-    (void)ep;  // Avoid unused warning
-
-    // For UAC 2.0, Audio Control Interface currently supports only
-    // - Feature Unit's volume control (bRequest = 0x01, bControlSelector = 0x02)
-    // - Feature Unit's mute control (bRequest = 0x01, bControlSelector = 0x01)
-    if (request->bRequest == AUDIO_CS_REQ_CUR) {
-        if (request->wValue == (AUDIO_CS_MUTE_CONTROL << 8)) {
-            // Receive mute control from host
-            uint8_t mute = 0;
-            tud_audio_buffer_and_schedule_control_xfer(rhport, request, &mute, 1);
-            return true;
-        } else if (request->wValue == (AUDIO_CS_VOLUME_CONTROL << 8)) {
-            // Receive volume control from host
-            uint16_t volume = 0;
-            tud_audio_buffer_and_schedule_control_xfer(rhport, request, &volume, 2);
-            return true;
-        }
-    }
-
-    // Unknown or unsupported request, stall endpoint
+    (void)request;
+    // For now, just return false to stall as audio is not fully implemented
     return false;
 }
 
-// Invoked when audio is received from the host
+bool tud_audio_set_req_cb(uint8_t rhport, tusb_control_request_t const *request) {
+    (void)rhport;
+    (void)request;
+    // For now, just return false to stall as audio is not fully implemented
+    return false;
+}
+
 void tud_audio_rx_cb(uint8_t rhport, uint8_t *buf, uint16_t count) {
     (void)rhport;
     (void)buf;
@@ -198,63 +179,57 @@ void tud_audio_rx_cb(uint8_t rhport, uint8_t *buf, uint16_t count) {
     // Not implemented - for audio reception from host
 }
 
-// Invoked when CDC data is received from the host
+// CDC callbacks
 void tud_cdc_rx_cb(uint8_t itf) {
     (void)itf;
     // Process received CDC data - not fully implemented here
 }
 
-// Invoked when cdc line state changed e.g connected/disconnected
 void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts) {
     (void)itf;
+    (void)rts; // Unused parameter
     // USB CDC state change, update connection state
     usb_connected = dtr;
 }
 
-// Invoked when CDC line coding changed
 void tud_cdc_line_coding_cb(uint8_t itf, cdc_line_coding_t const* line_coding) {
     (void)itf;
     (void)line_coding;
     // Not implemented - would handle baud rate changes
 }
 
-// Invoked when device is mounted (configured)
+// Device state callbacks
 void tud_mount_cb(void) {
     LOG_INFO("USB device mounted");
     usb_connected = true;
 }
 
-// Invoked when device is unmounted
 void tud_umount_cb(void) {
     LOG_INFO("USB device unmounted");
     usb_connected = false;
 }
 
-// Invoked when usb bus is suspended
 void tud_suspend_cb(bool remote_wakeup_en) {
     (void)remote_wakeup_en;
     // USB suspended, update connection state
     usb_connected = false;
 }
 
-// Invoked when usb bus is resumed
 void tud_resume_cb(void) {
     LOG_INFO("USB resumed");
     usb_connected = tud_mounted();
 }
 
-// Device descriptor callback
+// Descriptor callbacks
 uint8_t const* tud_descriptor_device_cb(void) {
     return (uint8_t const*)&device_descriptor;
 }
 
-// Configuration descriptor callback
 uint8_t const* tud_descriptor_configuration_cb(uint8_t index) {
     (void)index; // Only one configuration
     return config_descriptor;
 }
 
-// String descriptor callback
 uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     (void)langid; // Only support English
     static uint16_t str_desc[32];
@@ -283,26 +258,4 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     str_desc[0] = (TUSB_DESC_STRING << 8) | (2 * len + 2);
     
     return str_desc;
-}
-
-// USB Audio API stubs to satisfy TinyUSB requirements
-bool tud_audio_mounted(void) {
-    return usb_connected;
-}
-
-uint32_t tud_audio_write(const void* data, uint32_t len) {
-    // Not fully implemented - when needed, this would send data to the host
-    return tud_cdc_write(data, len);
-}
-
-void tud_audio_buffer_and_schedule_control_xfer(uint8_t rhport, tusb_control_request_t const * request, void* buffer, uint16_t len) {
-    // Process the request and respond to the host
-    tud_control_xfer(rhport, request, buffer, len);
-}
-
-bool tud_audio_get_req_cb(uint8_t rhport, tusb_control_request_t const *request) {
-    (void)rhport;
-    (void)request;
-    // For now, just return true to accept all audio control requests
-    return true;
 } 
