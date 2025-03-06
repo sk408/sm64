@@ -12,6 +12,7 @@
 #define ENABLE_LE_PERIPHERAL
 #define ENABLE_LE_CENTRAL
 #define ENABLE_L2CAP_LE_CREDIT_BASED_FLOW_CONTROL_MODE
+#define ENABLE_PRINTF_HEXDUMP     // Required for HCI dump on stdout
 
 // BLE GATT Server callbacks
 #define ENABLE_GATT_CLIENT_PAIRING
