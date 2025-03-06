@@ -24,6 +24,7 @@
 #define MAX_NR_SM_LOOKUP_ENTRIES 4
 #define MAX_NR_WHITELIST_ENTRIES 8
 #define MAX_NR_LE_DEVICE_DB_ENTRIES 16
+#define NVM_NUM_DEVICE_DB_ENTRIES 16  // Required by le_device_db_tlv.c
 
 // HCI and buffer size configurations
 #define HCI_ACL_PAYLOAD_SIZE 1024
